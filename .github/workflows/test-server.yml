@@ -1,12 +1,6 @@
-name: RSS Discord Bot
+name: RSS Bot - Test Server
 
-on:
-  schedule:
-    # Runs daily at 12:00 PM UTC (adjust to your preferred time)
-    - cron: '0 12 * * *'
-
-  # Allows manual trigger from Actions tab
-  workflow_dispatch:
+on: workflow_dispatch
 
 jobs:
   run-bot:
@@ -20,9 +14,9 @@ jobs:
       uses: actions/cache/restore@v4
       with:
         path: posted_items.json
-        key: rss-bot-state-${{ github.run_id }}
+        key: rss-bot-state-test-${{ github.run_id }}
         restore-keys: |
-          rss-bot-state-
+          rss-bot-state-test-
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -34,10 +28,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run RSS bot
+    - name: Run RSS bot with test webhook
       env:
         RSS_FEEDS: ${{ secrets.RSS_FEEDS }}
-        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_TEST }}
       run: python rss_bot.py
 
     - name: Save state to cache
@@ -45,4 +39,4 @@ jobs:
       if: always()
       with:
         path: posted_items.json
-        key: rss-bot-state-${{ github.run_id }}
+        key: rss-bot-state-test-${{ github.run_id }}

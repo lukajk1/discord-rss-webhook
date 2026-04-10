@@ -28,14 +28,31 @@ class RSSBot:
         """Load previously posted items from state file"""
         try:
             with open(self.state_file, 'r') as f:
-                return set(json.load(f))
+                data = json.load(f)
+                # Handle both old format (list of strings) and new format (dict with timestamps)
+                if isinstance(data, list):
+                    # Convert old format to new format with current timestamp
+                    return {item: datetime.now().isoformat() for item in data}
+                return data
         except (FileNotFoundError, json.JSONDecodeError):
-            return set()
+            return {}
 
     def save_state(self):
         """Save posted items to state file"""
+        # Clean up old entries (older than 30 days)
+        cutoff_date = datetime.now() - timedelta(days=30)
+        cleaned_items = {
+            item_id: timestamp
+            for item_id, timestamp in self.posted_items.items()
+            if datetime.fromisoformat(timestamp) >= cutoff_date
+        }
+
+        items_removed = len(self.posted_items) - len(cleaned_items)
+        if items_removed > 0:
+            print(f"Cleaned up {items_removed} old items (>30 days)")
+
         with open(self.state_file, 'w') as f:
-            json.dump(list(self.posted_items), f, indent=2)
+            json.dump(cleaned_items, f, indent=2)
 
     def fetch_feed(self, feed_url):
         """Fetch and parse a single RSS feed"""
@@ -188,7 +205,7 @@ class RSSBot:
 
                 formatted = self.format_entry(entry, feed_url)
                 new_entries.append(formatted)
-                self.posted_items.add(entry_id)
+                self.posted_items[entry_id] = datetime.now().isoformat()
 
         print(f"Found {len(new_entries)} new entries")
 
