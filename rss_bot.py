@@ -13,7 +13,13 @@ from dateutil import parser as date_parser
 
 class RSSBot:
     def __init__(self):
-        self.feeds = os.environ.get('RSS_FEEDS', '').split(',')
+        # Support both comma-separated and newline-separated feeds
+        feeds_raw = os.environ.get('RSS_FEEDS', '')
+        if '\n' in feeds_raw:
+            self.feeds = [f.strip() for f in feeds_raw.split('\n') if f.strip()]
+        else:
+            self.feeds = [f.strip() for f in feeds_raw.split(',') if f.strip()]
+
         self.discord_webhook = os.environ.get('DISCORD_WEBHOOK', '')
         self.state_file = 'posted_items.json'
         self.posted_items = self.load_state()
@@ -141,7 +147,8 @@ class RSSBot:
             return False
 
         data = {
-            "content": message
+            "content": message,
+            "flags": 4096  # SUPPRESS_NOTIFICATIONS flag
         }
 
         try:
