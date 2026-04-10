@@ -205,6 +205,13 @@ class RSSBot:
                         # Everything after (like "5 stars")
                         suffix = rest[book_match.end():].strip()
 
+                        # Check if description has a rating (overrides "added" with "gave X stars")
+                        rating_match = None
+                        if entry.get('description') and verb_phrase == "added":
+                            rating_match = re.search(r'gave (\d+) stars?', entry['description'])
+                            if rating_match:
+                                verb_phrase = f"gave {rating_match.group(1)} stars to"
+
                         # Build message: [User] verb phrase [linked 'book title'] suffix
                         message = f"**{username}** {verb_phrase} [{''+book_title+''}](<{entry['link']}>)"
                         if suffix:
