@@ -210,7 +210,12 @@ class RSSBot:
             message_parts.append(f"**{username}'s MyAnimeList Updates:**")
 
             for entry in user_entries:
-                message_parts.append(f"• [{entry['title']}]({entry['link']})")
+                # Format: [User] marked [Title] as [Description]
+                description = entry.get('description', '').strip()
+                if description:
+                    message_parts.append(f"• marked [{entry['title']}]({entry['link']}) as {description}")
+                else:
+                    message_parts.append(f"• [{entry['title']}]({entry['link']})")
 
             messages.append('\n'.join(message_parts))
 
