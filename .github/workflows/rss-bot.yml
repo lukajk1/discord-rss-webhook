@@ -1,0 +1,46 @@
+name: RSS Discord Bot
+
+on:
+  schedule:
+    # Runs daily at 12:00 PM UTC (adjust to your preferred time)
+    - cron: '0 12 * * *'
+
+  # Allows manual trigger from Actions tab
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run RSS bot
+      env:
+        RSS_FEEDS: ${{ secrets.RSS_FEEDS }}
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      run: python rss_bot.py
+
+    - name: Commit state file
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add posted_items.json || true
+        git diff --quiet && git diff --staged --quiet || git commit -m "Update posted items state [skip ci]"
+
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }}
