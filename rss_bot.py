@@ -190,6 +190,11 @@ class RSSBot:
             print("No Discord webhook configured")
             return False
 
+        # Discord has a 2000 character limit
+        if len(message) > 2000:
+            print(f"Message too long ({len(message)} chars), truncating...")
+            message = message[:1997] + "..."
+
         data = {
             "content": message,
             "flags": 4096  # SUPPRESS_NOTIFICATIONS flag
@@ -200,6 +205,11 @@ class RSSBot:
             response.raise_for_status()
             print("Message sent to Discord successfully")
             return True
+        except requests.exceptions.HTTPError as e:
+            print(f"Error sending to Discord: {e}")
+            print(f"Response: {response.text}")
+            print(f"Message length: {len(message)} characters")
+            return False
         except Exception as e:
             print(f"Error sending to Discord: {e}")
             return False
