@@ -195,14 +195,15 @@ class RSSBot:
 
                 if entry.get('username') and title.startswith(entry['username']):
                     import re
-                    # Try to extract verb (added/rated/reviewed/etc)
+                    # Try to extract verb and book title
                     match = re.match(f"^{re.escape(entry['username'])} (\\w+) (.+)$", title)
                     if match:
                         verb = match.group(1)
                         book_part = match.group(2)
 
-                # Build message: [User] verb'ed [title] <link> [Cover](url)
-                message = f"**{username}** {verb} {book_part} <{entry['link']}>"
+                # Build message: [User] verb'ed [linked title] [Cover](url)
+                # Put link on the book title, not separately
+                message = f"**{username}** {verb} [{book_part}]({entry['link']})"
                 if entry.get('image_url'):
                     message += f" [Cover]({entry['image_url']})"
 
