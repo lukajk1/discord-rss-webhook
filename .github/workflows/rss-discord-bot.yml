@@ -38,6 +38,7 @@ jobs:
       env:
         RSS_FEEDS: ${{ secrets.RSS_FEEDS }}
         DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        DAYS_BACK: '1'
       run: python rss_bot.py
 
     - name: Save state to cache

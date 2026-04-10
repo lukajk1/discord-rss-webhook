@@ -24,6 +24,9 @@ class RSSBot:
         self.state_file = 'posted_items.json'
         self.posted_items = self.load_state()
 
+        # Get number of days to look back (default: 1)
+        self.days_back = int(os.environ.get('DAYS_BACK', '1'))
+
     def load_state(self):
         """Load previously posted items from state file"""
         try:
@@ -58,10 +61,27 @@ class RSSBot:
         """Fetch and parse a single RSS feed"""
         try:
             feed = feedparser.parse(feed_url)
-            return feed.entries
+            return feed
         except Exception as e:
             print(f"Error fetching {feed_url}: {e}")
-            return []
+            return None
+
+    def extract_username(self, feed):
+        """Extract username from feed metadata"""
+        if not feed or not hasattr(feed, 'feed'):
+            return None
+
+        feed_title = feed.feed.get('title', '')
+
+        # Goodreads: "Miranda's Updates"
+        if "'s Updates" in feed_title or "'s updates" in feed_title:
+            return feed_title.replace("'s Updates", "").replace("'s updates", "").strip()
+
+        # MyAnimeList: "Chocd's Anime from MyAnimeList.net"
+        if "'s Anime from MyAnimeList" in feed_title or "'s Manga from MyAnimeList" in feed_title:
+            return feed_title.split("'s")[0].strip()
+
+        return None
 
     def is_recent(self, entry, hours=24):
         """Check if entry is from the last N hours"""
@@ -86,7 +106,7 @@ class RSSBot:
             return entry.link
         return entry.title
 
-    def format_entry(self, entry, feed_source):
+    def format_entry(self, entry, feed_source, username=None):
         """Format an RSS entry for Discord"""
         title = entry.get('title', 'No title')
         link = entry.get('link', '')
@@ -104,7 +124,8 @@ class RSSBot:
             'link': link,
             'description': description,
             'source': feed_source,
-            'emoji': source_emoji
+            'emoji': source_emoji,
+            'username': username
         }
 
     def get_source_emoji(self, link):
@@ -141,19 +162,22 @@ class RSSBot:
         if goodreads_entries:
             message_parts.append("📚 **Goodreads Updates:**")
             for entry in goodreads_entries:
-                message_parts.append(f"• [{entry['title']}]({entry['link']})")
+                user_prefix = f"**{entry['username']}**: " if entry.get('username') else ""
+                message_parts.append(f"• {user_prefix}[{entry['title']}]({entry['link']})")
             message_parts.append("")
 
         if mal_entries:
             message_parts.append("📺 **MyAnimeList Updates:**")
             for entry in mal_entries:
-                message_parts.append(f"• [{entry['title']}]({entry['link']})")
+                user_prefix = f"**{entry['username']}**: " if entry.get('username') else ""
+                message_parts.append(f"• {user_prefix}[{entry['title']}]({entry['link']})")
             message_parts.append("")
 
         if other_entries:
             message_parts.append("🔔 **Other Updates:**")
             for entry in other_entries:
-                message_parts.append(f"• [{entry['title']}]({entry['link']})")
+                user_prefix = f"**{entry['username']}**: " if entry.get('username') else ""
+                message_parts.append(f"• {user_prefix}[{entry['title']}]({entry['link']})")
 
         return '\n'.join(message_parts)
 
@@ -190,20 +214,27 @@ class RSSBot:
                 continue
 
             print(f"Fetching: {feed_url}")
-            entries = self.fetch_feed(feed_url)
+            feed = self.fetch_feed(feed_url)
 
-            for entry in entries:
+            if not feed or not hasattr(feed, 'entries'):
+                continue
+
+            # Extract username from feed metadata
+            username = self.extract_username(feed)
+
+            for entry in feed.entries:
                 entry_id = self.get_entry_id(entry)
 
                 # Skip if already posted
                 if entry_id in self.posted_items:
                     continue
 
-                # Check if recent (last 24 hours)
-                if not self.is_recent(entry, hours=24):
+                # Check if recent (based on days_back setting)
+                hours = self.days_back * 24
+                if not self.is_recent(entry, hours=hours):
                     continue
 
-                formatted = self.format_entry(entry, feed_url)
+                formatted = self.format_entry(entry, feed_url, username)
                 new_entries.append(formatted)
                 self.posted_items[entry_id] = datetime.now().isoformat()
 

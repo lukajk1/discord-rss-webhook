@@ -1,0 +1,18 @@
+name: Clear Test Server Cache
+
+on: workflow_dispatch
+
+jobs:
+  clear-cache:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Clear test state
+      run: |
+        echo "Creating empty state file"
+        echo "{}" > posted_items.json
+
+    - name: Save empty state to test cache
+      uses: actions/cache/save@v4
+      with:
+        path: posted_items.json
+        key: rss-bot-state-test-${{ github.run_id }}

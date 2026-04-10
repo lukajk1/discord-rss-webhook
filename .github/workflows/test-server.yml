@@ -1,6 +1,13 @@
 name: RSS Bot - Test Server
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      days_back:
+        description: 'Number of days back to include'
+        required: false
+        default: '7'
+        type: string
 
 jobs:
   run-bot:
@@ -32,6 +39,7 @@ jobs:
       env:
         RSS_FEEDS: ${{ secrets.RSS_FEEDS }}
         DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_TEST }}
+        DAYS_BACK: ${{ inputs.days_back }}
       run: python rss_bot.py
 
     - name: Save state to cache
