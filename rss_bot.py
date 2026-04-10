@@ -202,10 +202,10 @@ class RSSBot:
                         book_part = match.group(2)
 
                 # Build message: [User] verb'ed [linked title] [Cover](url)
-                # Put link on the book title, not separately
-                message = f"**{username}** {verb} [{book_part}]({entry['link']})"
+                # Put link on the book title with angle brackets to suppress embed
+                message = f"**{username}** {verb} [{book_part}](<{entry['link']}>)"
                 if entry.get('image_url'):
-                    message += f" [Cover]({entry['image_url']})"
+                    message += f"\n[cover]({entry['image_url']})"
 
                 messages.append(message)
 
