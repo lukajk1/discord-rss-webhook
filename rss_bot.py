@@ -188,22 +188,32 @@ class RSSBot:
         for username, user_entries in sorted(goodreads_by_user.items()):
             for entry in user_entries:
                 # Extract verb and book title from the feed title
-                # Format: "Username added 'Book Title'" or "Username rated 'Book' 5 stars"
+                # Format: "Username added 'Book Title'" or "Username wants to read 'Book Title'"
                 title = entry['title']
-                verb = "updated"  # default
-                book_part = title
+                import re
 
                 if entry.get('username') and title.startswith(entry['username']):
-                    import re
-                    # Try to extract verb and book title
-                    match = re.match(f"^{re.escape(entry['username'])} (\\w+) (.+)$", title)
-                    if match:
-                        verb = match.group(1)
-                        book_part = match.group(2)
+                    # Remove username from beginning
+                    rest = title[len(entry['username']):].strip()
 
-                # Build message: [User] verb'ed [linked title] [Cover](url)
-                # Put link on the book title with angle brackets to suppress embed
-                message = f"**{username}** {verb} [{book_part}](<{entry['link']}>)"
+                    # Extract quoted book title
+                    book_match = re.search(r"'([^']+)'", rest)
+                    if book_match:
+                        book_title = f"'{book_match.group(1)}'"
+                        # Everything before the quoted title is the verb phrase
+                        verb_phrase = rest[:book_match.start()].strip()
+                        # Everything after (like "5 stars")
+                        suffix = rest[book_match.end():].strip()
+
+                        # Build message: [User] verb phrase [linked 'book title'] suffix
+                        message = f"**{username}** {verb_phrase} [{''+book_title+''}](<{entry['link']}>)"
+                        if suffix:
+                            message += f" {suffix}"
+                    else:
+                        # Fallback if no quotes found
+                        message = f"**{username}** {rest}"
+                else:
+                    message = f"**{username}** {title}"
                 if entry.get('image_url'):
                     message += f"\n[cover]({entry['image_url']})"
 
