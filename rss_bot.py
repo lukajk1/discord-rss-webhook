@@ -211,12 +211,12 @@ class RSSBot:
         # Create individual message for each MAL entry
         for username, user_entries in sorted(mal_by_user.items()):
             for entry in user_entries:
-                # Format: [User] marked [Title] <link> as [Description]
+                # Format: [User] marked [Title] (link) as [Description]
                 description = entry.get('description', '').strip()
                 if description:
-                    message = f"**{username}** marked {entry['title']} <{entry['link']}> as {description}"
+                    message = f"**{username}** marked [{entry['title']}]({entry['link']}) as {description}"
                 else:
-                    message = f"**{username}** updated {entry['title']} <{entry['link']}>"
+                    message = f"**{username}** updated [{entry['title']}]({entry['link']})"
 
                 messages.append(message)
 
