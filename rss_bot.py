@@ -181,11 +181,13 @@ class RSSBot:
         messages = []
         date_str = datetime.now().strftime('%B %d, %Y')
 
+        # Add header as first message
+        messages.append(f"It's the Pony Express! Here's the latest updates for {date_str}:")
+
         # Create separate message for each user's Goodreads updates
         for username, user_entries in sorted(goodreads_by_user.items()):
             message_parts = []
-            message_parts.append(f"It's the Pony Express! Here's the latest Goodreads updates for {date_str}:\n")
-            message_parts.append(f"**{username}'s Updates:**")
+            message_parts.append(f"**{username}'s Goodreads Updates:**")
 
             for entry in user_entries:
                 # Strip username from title but keep the verb
@@ -205,8 +207,7 @@ class RSSBot:
         # Create separate message for each user's MAL updates
         for username, user_entries in sorted(mal_by_user.items()):
             message_parts = []
-            message_parts.append(f"It's the Pony Express! Here's the latest MyAnimeList updates for {date_str}:\n")
-            message_parts.append(f"**{username}'s Updates:**")
+            message_parts.append(f"**{username}'s MyAnimeList Updates:**")
 
             for entry in user_entries:
                 message_parts.append(f"• [{entry['title']}]({entry['link']})")
@@ -216,7 +217,6 @@ class RSSBot:
         # Create message for other updates (grouped by user)
         for username, user_entries in sorted(other_by_user.items()):
             message_parts = []
-            message_parts.append(f"It's the Pony Express! Here's the latest updates for {date_str}:\n")
             message_parts.append(f"**{username}'s Updates:**")
 
             for entry in user_entries:
