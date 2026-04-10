@@ -109,15 +109,32 @@ class RSSBot:
             return entry.link
         return entry.title
 
+    def extract_image_url(self, html_content):
+        """Extract image URL from HTML content (for Goodreads)"""
+        if not html_content:
+            return None
+
+        # Look for img src in the HTML
+        import re
+        match = re.search(r'<img[^>]+src="([^"]+)"', html_content)
+        if match:
+            img_url = match.group(1)
+            # Upgrade to larger image if it's a thumbnail
+            img_url = img_url.replace('_SX50_', '_SX200_').replace('_SY75_', '_SY200_')
+            return img_url
+        return None
+
     def format_entry(self, entry, feed_source, username=None):
         """Format an RSS entry for Discord"""
         title = entry.get('title', 'No title')
         link = entry.get('link', '')
 
-        # Try to get description/summary
+        # Try to get description/summary and extract image
         description = ''
+        image_url = None
         if hasattr(entry, 'summary'):
-            description = entry.summary[:200] + '...' if len(entry.summary) > 200 else entry.summary
+            description = entry.summary
+            image_url = self.extract_image_url(description)
 
         # Detect source type
         source_emoji = self.get_source_emoji(link)
@@ -128,7 +145,8 @@ class RSSBot:
             'description': description,
             'source': feed_source,
             'emoji': source_emoji,
-            'username': username
+            'username': username,
+            'image_url': image_url
         }
 
     def get_source_emoji(self, link):
@@ -160,24 +178,35 @@ class RSSBot:
 
         # Build message
         message_parts = []
-        message_parts.append(f"**Daily Update - {datetime.now().strftime('%B %d, %Y')}**\n")
+        message_parts.append(f"It's the Pony Express! Here's the latest updates for {datetime.now().strftime('%B %d, %Y')}:\n")
 
         if goodreads_entries:
-            message_parts.append("📚 **Goodreads Updates:**")
+            message_parts.append("**Goodreads Updates:**")
             for entry in goodreads_entries:
+                # Strip username from title but keep the verb (Goodreads format: "Username added 'Book'")
+                title = entry['title']
+                if entry.get('username') and title.startswith(entry['username']):
+                    # Remove just the username, keep "added/rated/reviewed 'Book'"
+                    import re
+                    title = re.sub(f"^{re.escape(entry['username'])} ", "", title)
+
                 user_prefix = f"**{entry['username']}**: " if entry.get('username') else ""
-                message_parts.append(f"• {user_prefix}[{entry['title']}]({entry['link']})")
+                # Include image if available
+                if entry.get('image_url'):
+                    message_parts.append(f"• {user_prefix}{title} [Cover]({entry['image_url']})")
+                else:
+                    message_parts.append(f"• {user_prefix}{title}")
             message_parts.append("")
 
         if mal_entries:
-            message_parts.append("📺 **MyAnimeList Updates:**")
+            message_parts.append("**MyAnimeList Updates:**")
             for entry in mal_entries:
                 user_prefix = f"**{entry['username']}**: " if entry.get('username') else ""
                 message_parts.append(f"• {user_prefix}[{entry['title']}]({entry['link']})")
             message_parts.append("")
 
         if other_entries:
-            message_parts.append("🔔 **Other Updates:**")
+            message_parts.append("**Other Updates:**")
             for entry in other_entries:
                 user_prefix = f"**{entry['username']}**: " if entry.get('username') else ""
                 message_parts.append(f"• {user_prefix}[{entry['title']}]({entry['link']})")
