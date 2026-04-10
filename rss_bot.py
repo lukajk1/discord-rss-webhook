@@ -158,60 +158,73 @@ class RSSBot:
         else:
             return '🔔'
 
-    def create_discord_message(self, entries):
-        """Create formatted Discord message from entries"""
+    def create_discord_messages(self, entries):
+        """Create formatted Discord messages from entries (separated by user and platform)"""
         if not entries:
-            return None
+            return []
 
-        # Group by source
-        goodreads_entries = []
-        mal_entries = []
-        other_entries = []
+        # Group by platform and user
+        from collections import defaultdict
+        goodreads_by_user = defaultdict(list)
+        mal_by_user = defaultdict(list)
+        other_by_user = defaultdict(list)
 
         for entry in entries:
+            username = entry.get('username', 'Unknown')
             if '📚' in entry['emoji']:
-                goodreads_entries.append(entry)
+                goodreads_by_user[username].append(entry)
             elif '📺' in entry['emoji']:
-                mal_entries.append(entry)
+                mal_by_user[username].append(entry)
             else:
-                other_entries.append(entry)
+                other_by_user[username].append(entry)
 
-        # Build message
-        message_parts = []
-        message_parts.append(f"It's the Pony Express! Here's the latest updates for {datetime.now().strftime('%B %d, %Y')}:\n")
+        messages = []
+        date_str = datetime.now().strftime('%B %d, %Y')
 
-        if goodreads_entries:
-            message_parts.append("**Goodreads Updates:**")
-            for entry in goodreads_entries:
-                # Strip username from title but keep the verb (Goodreads format: "Username added 'Book'")
+        # Create separate message for each user's Goodreads updates
+        for username, user_entries in sorted(goodreads_by_user.items()):
+            message_parts = []
+            message_parts.append(f"It's the Pony Express! Here's the latest Goodreads updates for {date_str}:\n")
+            message_parts.append(f"**{username}'s Updates:**")
+
+            for entry in user_entries:
+                # Strip username from title but keep the verb
                 title = entry['title']
                 if entry.get('username') and title.startswith(entry['username']):
-                    # Remove just the username, keep "added/rated/reviewed 'Book'"
                     import re
                     title = re.sub(f"^{re.escape(entry['username'])} ", "", title)
 
-                user_prefix = f"**{entry['username']}**: " if entry.get('username') else ""
                 # Include image if available
                 if entry.get('image_url'):
-                    message_parts.append(f"• {user_prefix}{title} [Cover]({entry['image_url']})")
+                    message_parts.append(f"• [{title}]({entry['link']}) [Cover]({entry['image_url']})")
                 else:
-                    message_parts.append(f"• {user_prefix}{title}")
-            message_parts.append("")
+                    message_parts.append(f"• [{title}]({entry['link']})")
 
-        if mal_entries:
-            message_parts.append("**MyAnimeList Updates:**")
-            for entry in mal_entries:
-                user_prefix = f"**{entry['username']}**: " if entry.get('username') else ""
-                message_parts.append(f"• {user_prefix}[{entry['title']}]({entry['link']})")
-            message_parts.append("")
+            messages.append('\n'.join(message_parts))
 
-        if other_entries:
-            message_parts.append("**Other Updates:**")
-            for entry in other_entries:
-                user_prefix = f"**{entry['username']}**: " if entry.get('username') else ""
-                message_parts.append(f"• {user_prefix}[{entry['title']}]({entry['link']})")
+        # Create separate message for each user's MAL updates
+        for username, user_entries in sorted(mal_by_user.items()):
+            message_parts = []
+            message_parts.append(f"It's the Pony Express! Here's the latest MyAnimeList updates for {date_str}:\n")
+            message_parts.append(f"**{username}'s Updates:**")
 
-        return '\n'.join(message_parts)
+            for entry in user_entries:
+                message_parts.append(f"• [{entry['title']}]({entry['link']})")
+
+            messages.append('\n'.join(message_parts))
+
+        # Create message for other updates (grouped by user)
+        for username, user_entries in sorted(other_by_user.items()):
+            message_parts = []
+            message_parts.append(f"It's the Pony Express! Here's the latest updates for {date_str}:\n")
+            message_parts.append(f"**{username}'s Updates:**")
+
+            for entry in user_entries:
+                message_parts.append(f"• [{entry['title']}]({entry['link']})")
+
+            messages.append('\n'.join(message_parts))
+
+        return messages
 
     def send_to_discord(self, message):
         """Send message to Discord webhook"""
@@ -283,9 +296,11 @@ class RSSBot:
         print(f"Found {len(new_entries)} new entries")
 
         if new_entries:
-            message = self.create_discord_message(new_entries)
-            if message:
-                self.send_to_discord(message)
+            messages = self.create_discord_messages(new_entries)
+            if messages:
+                for i, message in enumerate(messages, 1):
+                    print(f"Sending message {i}/{len(messages)}...")
+                    self.send_to_discord(message)
                 self.save_state()
                 print("Update complete!")
         else:
