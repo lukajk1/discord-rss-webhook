@@ -6,8 +6,13 @@ on:
       days_back:
         description: 'Number of days back to include'
         required: false
-        default: '7'
+        default: '30'
         type: string
+      ignore_history:
+        description: 'Ignore posting history (post all items in range)'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   run-bot:
@@ -40,6 +45,7 @@ jobs:
         RSS_FEEDS: ${{ secrets.RSS_FEEDS }}
         DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_TEST }}
         DAYS_BACK: ${{ inputs.days_back }}
+        IGNORE_HISTORY: ${{ inputs.ignore_history }}
       run: python rss_bot.py
 
     - name: Save state to cache

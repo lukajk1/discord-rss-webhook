@@ -27,6 +27,9 @@ class RSSBot:
         # Get number of days to look back (default: 1)
         self.days_back = int(os.environ.get('DAYS_BACK', '1'))
 
+        # Get whether to ignore history (default: false)
+        self.ignore_history = os.environ.get('IGNORE_HISTORY', 'false').lower() == 'true'
+
     def load_state(self):
         """Load previously posted items from state file"""
         try:
@@ -225,8 +228,8 @@ class RSSBot:
             for entry in feed.entries:
                 entry_id = self.get_entry_id(entry)
 
-                # Skip if already posted
-                if entry_id in self.posted_items:
+                # Skip if already posted (unless ignoring history)
+                if not self.ignore_history and entry_id in self.posted_items:
                     continue
 
                 # Check if recent (based on days_back setting)
