@@ -184,50 +184,47 @@ class RSSBot:
         # Add header as first message
         messages.append(f"It's the Pony Express! Here's the latest updates for {date_str}:")
 
-        # Create separate message for each user's Goodreads updates
+        # Create individual message for each Goodreads entry
         for username, user_entries in sorted(goodreads_by_user.items()):
-            message_parts = []
-            message_parts.append(f"**{username}'s Goodreads Updates:**")
-
             for entry in user_entries:
-                # Strip username from title but keep the verb
+                # Extract verb and book title from the feed title
+                # Format: "Username added 'Book Title'" or "Username rated 'Book' 5 stars"
                 title = entry['title']
+                verb = "updated"  # default
+                book_part = title
+
                 if entry.get('username') and title.startswith(entry['username']):
                     import re
-                    title = re.sub(f"^{re.escape(entry['username'])} ", "", title)
+                    # Try to extract verb (added/rated/reviewed/etc)
+                    match = re.match(f"^{re.escape(entry['username'])} (\\w+) (.+)$", title)
+                    if match:
+                        verb = match.group(1)
+                        book_part = match.group(2)
 
-                # Include image if available
+                # Build message: [User] verb'ed [title] <link> [Cover](url)
+                message = f"**{username}** {verb} {book_part} <{entry['link']}>"
                 if entry.get('image_url'):
-                    message_parts.append(f"• [{title}]({entry['link']}) [Cover]({entry['image_url']})")
-                else:
-                    message_parts.append(f"• [{title}]({entry['link']})")
+                    message += f" [Cover]({entry['image_url']})"
 
-            messages.append('\n'.join(message_parts))
+                messages.append(message)
 
-        # Create separate message for each user's MAL updates
+        # Create individual message for each MAL entry
         for username, user_entries in sorted(mal_by_user.items()):
-            message_parts = []
-            message_parts.append(f"**{username}'s MyAnimeList Updates:**")
-
             for entry in user_entries:
-                # Format: [User] marked [Title] as [Description]
+                # Format: [User] marked [Title] <link> as [Description]
                 description = entry.get('description', '').strip()
                 if description:
-                    message_parts.append(f"• marked [{entry['title']}]({entry['link']}) as {description}")
+                    message = f"**{username}** marked {entry['title']} <{entry['link']}> as {description}"
                 else:
-                    message_parts.append(f"• [{entry['title']}]({entry['link']})")
+                    message = f"**{username}** updated {entry['title']} <{entry['link']}>"
 
-            messages.append('\n'.join(message_parts))
+                messages.append(message)
 
-        # Create message for other updates (grouped by user)
+        # Create individual message for other updates
         for username, user_entries in sorted(other_by_user.items()):
-            message_parts = []
-            message_parts.append(f"**{username}'s Updates:**")
-
             for entry in user_entries:
-                message_parts.append(f"• [{entry['title']}]({entry['link']})")
-
-            messages.append('\n'.join(message_parts))
+                message = f"**{username}** updated {entry['title']} <{entry['link']}>"
+                messages.append(message)
 
         return messages
 
