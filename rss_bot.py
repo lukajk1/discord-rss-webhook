@@ -182,7 +182,7 @@ class RSSBot:
         date_str = datetime.now().strftime('%B %d, %Y')
 
         # Add header as first message
-        messages.append(f"It's the Pony Express! Here's the latest updates for {date_str}:")
+        messages.append(f"It's the Pony Express! Here's the latest scoop for {date_str}:")
 
         # Create individual message for each Goodreads entry
         for username, user_entries in sorted(goodreads_by_user.items()):

@@ -2,8 +2,8 @@ name: RSS Discord Bot
 
 on:
   schedule:
-    # Runs daily at 12:00 PM UTC (adjust to your preferred time)
-    - cron: '0 12 * * *'
+    # Runs daily at 8:00 AM UTC (midnight PST in winter, 1:00 AM PDT in summer)
+    - cron: '0 8 * * *'
 
   # Allows manual trigger from Actions tab
   workflow_dispatch:
