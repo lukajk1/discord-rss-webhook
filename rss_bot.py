@@ -45,8 +45,8 @@ class RSSBot:
 
     def save_state(self):
         """Save posted items to state file"""
-        # Clean up old entries (older than 30 days)
-        cutoff_date = datetime.now() - timedelta(days=30)
+        # Clean up old entries (older than 180 days)
+        cutoff_date = datetime.now() - timedelta(days=180)
         cleaned_items = {
             item_id: timestamp
             for item_id, timestamp in self.posted_items.items()
@@ -55,7 +55,7 @@ class RSSBot:
 
         items_removed = len(self.posted_items) - len(cleaned_items)
         if items_removed > 0:
-            print(f"Cleaned up {items_removed} old items (>30 days)")
+            print(f"Cleaned up {items_removed} old items (>180 days)")
 
         with open(self.state_file, 'w') as f:
             json.dump(cleaned_items, f, indent=2)
@@ -182,7 +182,7 @@ class RSSBot:
         date_str = datetime.now().strftime('%B %d, %Y')
 
         # Add header as first message
-        messages.append(f"It's the Pony Express! Here's the latest scoop for {date_str}:")
+        messages.append(f"It's the Pony Express! 🐎📫 Here's the latest scoop for {date_str}:")
 
         # Create individual message for each Goodreads entry
         for username, user_entries in sorted(goodreads_by_user.items()):
