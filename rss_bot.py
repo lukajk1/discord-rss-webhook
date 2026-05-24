@@ -124,6 +124,22 @@ class RSSBot:
             return img_url
         return None
 
+    def extract_review_text(self, html_content):
+        """Extract quoted review text from Goodreads HTML summary"""
+        if not html_content:
+            return None
+        import re
+        # Remove all HTML tags
+        text = re.sub(r'<[^>]+>', '', html_content)
+        # Decode common HTML entities
+        text = text.replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>').replace('&quot;', '"').replace('&#39;', "'").replace('&nbsp;', ' ')
+        text = text.strip()
+        # Goodreads wraps review text in quotes at the end — extract just that
+        match = re.search(r'"([^"]+)"\s*$', text)
+        if match:
+            return match.group(1).strip()
+        return None
+
     def format_entry(self, entry, feed_source, username=None):
         """Format an RSS entry for Discord"""
         title = entry.get('title', 'No title')
@@ -132,9 +148,11 @@ class RSSBot:
         # Try to get description/summary and extract image
         description = ''
         image_url = None
+        review_text = None
         if hasattr(entry, 'summary'):
             description = entry.summary
             image_url = self.extract_image_url(description)
+            review_text = self.extract_review_text(description)
 
         # Detect source type
         source_emoji = self.get_source_emoji(link)
@@ -146,7 +164,8 @@ class RSSBot:
             'source': feed_source,
             'emoji': source_emoji,
             'username': username,
-            'image_url': image_url
+            'image_url': image_url,
+            'review_text': review_text
         }
 
     def get_source_emoji(self, link):
@@ -221,6 +240,12 @@ class RSSBot:
                         message = f"**{username}** {rest}"
                 else:
                     message = f"**{username}** {title}"
+
+                # Append review text if present
+                review = entry.get('review_text', '')
+                if review:
+                    message += f"\n> {review}"
+
                 if entry.get('image_url'):
                     message += f"\n[cover]({entry['image_url']})"
 
