@@ -125,20 +125,30 @@ class RSSBot:
         return None
 
     def extract_review_text(self, html_content):
-        """Extract quoted review text from Goodreads HTML summary"""
+        """Extract the review body from a Goodreads Review HTML summary.
+
+        The summary is structured as: cover <img>, a "Luka gave N stars to
+        <book> by <author>" line, an optional "bookshelves: ..." line, one or
+        more <br/> separators, then the free-text review body as trailing plain
+        text (not quote-wrapped). We take everything after the last <br/> and
+        strip any remaining markup.
+        """
         if not html_content:
             return None
         import re
-        # Remove all HTML tags
-        text = re.sub(r'<[^>]+>', '', html_content)
+        # The review body is whatever follows the final <br/> separator.
+        parts = re.split(r'<br\s*/?>', html_content, flags=re.IGNORECASE)
+        candidate = parts[-1] if parts else html_content
+        # Strip any remaining HTML tags (e.g. leftover links/spans)
+        text = re.sub(r'<[^>]+>', '', candidate)
         # Decode common HTML entities
         text = text.replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>').replace('&quot;', '"').replace('&#39;', "'").replace('&nbsp;', ' ')
         text = text.strip()
-        # Goodreads wraps review text in quotes at the end — extract just that
-        match = re.search(r'"([^"]+)"\s*$', text)
-        if match:
-            return match.group(1).strip()
-        return None
+        # Ignore trailing segments that are just metadata (e.g. a lone
+        # "bookshelves:" line with no actual review) or empty.
+        if not text or text.lower().startswith('bookshelves:'):
+            return None
+        return text
 
     def format_entry(self, entry, feed_source, username=None):
         """Format an RSS entry for Discord"""
