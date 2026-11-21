@@ -11,14 +11,39 @@ from datetime import datetime, timedelta
 from dateutil import parser as date_parser
 
 
+FEEDS_FILE = 'feeds.txt'
+
+
+def parse_feeds(raw):
+    """Parse a feed list: one URL per line (or comma-separated).
+
+    Blank lines and '#' comments are ignored, including a trailing
+    "  # note" after a URL.
+    """
+    lines = raw.split('\n') if '\n' in raw else raw.split(',')
+    feeds = []
+    for line in lines:
+        line = line.strip()
+        if line.startswith('#'):
+            continue
+        line = line.split(' #')[0].strip()
+        if line:
+            feeds.append(line)
+    return feeds
+
+
+def load_feeds():
+    """Read feeds from feeds.txt if it exists, otherwise from RSS_FEEDS."""
+    if os.path.exists(FEEDS_FILE):
+        with open(FEEDS_FILE, encoding='utf-8') as f:
+            print(f"Reading feeds from {FEEDS_FILE}")
+            return parse_feeds(f.read())
+    return parse_feeds(os.environ.get('RSS_FEEDS', ''))
+
+
 class RSSBot:
     def __init__(self):
-        # Support both comma-separated and newline-separated feeds
-        feeds_raw = os.environ.get('RSS_FEEDS', '')
-        if '\n' in feeds_raw:
-            self.feeds = [f.strip() for f in feeds_raw.split('\n') if f.strip()]
-        else:
-            self.feeds = [f.strip() for f in feeds_raw.split(',') if f.strip()]
+        self.feeds = load_feeds()
 
         self.discord_webhook = os.environ.get('DISCORD_WEBHOOK', '')
         self.state_file = 'posted_items.json'

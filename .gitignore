@@ -10,3 +10,6 @@ env/
 posted_items.json
 *.log
 .DS_Store
+
+# Local feed list (synced to the RSS_FEEDS secret with sync-feeds.ps1)
+feeds.txt

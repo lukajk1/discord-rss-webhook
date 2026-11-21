@@ -8,7 +8,7 @@ A lightweight RSS aggregator bot that monitors multiple RSS feeds and posts dail
 - Aggregates updates into a single daily Discord message (sent silently)
 - Tracks posted items to avoid duplicates
 - Runs automatically on a schedule via GitHub Actions
-- All configuration via GitHub Secrets (keeps feeds private)
+- Feeds kept in a local, gitignored `feeds.txt` and synced to a GitHub Secret (keeps feeds private)
 
 ## How It Works
 
@@ -27,6 +27,9 @@ rss-discord-bot/
 │   ├── rss-discord-bot.yml    # Main RSS bot workflow
 │   └── test.yml               # Test Discord message workflow
 ├── rss_bot.py                 # Main bot script
+├── feeds.txt                  # Your feed URLs (gitignored)
+├── feeds.example.txt          # Template for feeds.txt
+├── sync-feeds.ps1             # Push feeds.txt to the RSS_FEEDS secret
 ├── requirements.txt           # Python dependencies
 ├── posted_items.json          # State file (auto-generated)
 └── README.md
@@ -34,8 +37,19 @@ rss-discord-bot/
 
 ## Configuration
 
+**Feeds:** the list lives in `feeds.txt`, one URL per line, `#` for comments.
+It is gitignored (the repo is public); copy `feeds.example.txt` to start one.
+The bot reads `feeds.txt` when it exists, otherwise the `RSS_FEEDS` env var.
+
+GitHub Actions can't see the local file, so after editing it push it to the
+`RSS_FEEDS` secret (needs the GitHub CLI, signed in):
+
+```powershell
+.\sync-feeds.ps1
+```
+
 **GitHub Secrets:**
-- `RSS_FEEDS` - Newline or comma-separated list of RSS feed URLs
+- `RSS_FEEDS` - the feed URLs, newline-separated (set by `sync-feeds.ps1`)
 - `DISCORD_WEBHOOK` - Discord webhook URL
 
 **Schedule:** Modify cron schedule in `.github/workflows/rss-discord-bot.yml`
